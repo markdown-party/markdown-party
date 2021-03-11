@@ -1,3 +1,5 @@
+> :books: Looking for the weekly reports ? [You can find them here](WeeklyReports) :books:
+
 # Markdown Party
 
 Welcome to the **Markdown Party** GitHub repository ! **Markdown Party** is the title of the product I'm developing for my Bachelor Thesis at HEIG-VD; it's a web-based collaborative editor available [online](https://markdown.party).
