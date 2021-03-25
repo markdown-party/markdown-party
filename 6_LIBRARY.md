@@ -12,3 +12,5 @@
 ## Optimizations
 ### Site, Exchange and Link relationships
 ### The `EventLog` interface
+
+## References
