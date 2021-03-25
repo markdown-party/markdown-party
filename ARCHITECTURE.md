@@ -38,7 +38,7 @@ Here is a (non-exhaustive) list of some terminology I will be using throughout t
 
 #### Operational Transformation
 
-This technique is usually centralized, and particularly cumbersome and difficult to implement [[4]](#bib_gentle_i_was_wrong). Usually, one has to implment a centralized operation log; eacch site will then send operations to the central server. Whenever a new operation is received, the server checks what the "expected" result was, and transforms the operation with the current log contents. The transformed operation is then sent to all the other sites, so it can be applied properly.
+This technique is usually centralized, and particularly cumbersome and difficult to implement [[4]](#bib_gentle_i_was_wrong). Usually, one has to implement a centralized operation log; each site will then send operations to the central server. Whenever a new operation is received, the server checks what the "expected" result was, and transforms the operation with the current log contents. The transformed operation is then sent to all the other sites, so it can be applied properly.
 
 #### Causality tracking with clocks
 
@@ -124,6 +124,53 @@ FIN FUNCTION
 This `Merge` function is idempotent, commutative (as long as an identifier can't be associated with two separate operations), and associative. We can therefore use it to replicate operations. Unfortunately, this naive approach has a major drawback : it's necessary to copy the whole data structure before performing a `Merge`. The approch chosen by `kotlin-echo` consists in optimizing data transfer across sites by implementing a custom replication protocol.
 
 ### Protocols
+
+The protocol is separated in two roles : a sender of incoming messages, and a receiver of outgoing messages. At a high-level, each role does the following :
+
+- The receiver originates the sync, and tells which events it wants to receive.
+- The sender answers the requests with the right events, and advertises when new events are
+available that the receiver might not know about.
+
+In a real-world scenario, both sites play both roles simultaneously. Because messages and roles are clearly separated between the server and the receiver, it's possible for sites to perform as a sender and a receiver simultaneously with a single communication channel.
+
+Here's a summary of what messages are sent by the receiver and sender :
+
+#### Receiver
+
+- `Request`
+    + Arguments :
+        - `nextForAll: SequenceNumber`
+        - `nextForSite: SequenceNumber`
+        - `site: SiteIdentifier`
+        - `count: Long`
+    + Explanation : Indicates that the outgoing side is ready to receive some events. A request message can not be sent before the _Ready_ message has already been received. A _Reqst_ works as follows :
+       - The request is tied to a specific `site`. You may not issue a _Request_ for a SiteIdentifier that has not been advertised through an _Advertisement_.
+       - The `nextForSite` indicates what the requested sequence number for the specific `site` is.
+       - The `nextForAll` indicates the requested sequence number if the other site was to generate an event that's definitely higher than your current knowledge.
+       - The `site` indicates the site of interest.
+       - The `count` indicates how many events we request.
+
+#### Sender
+
+#### Backpressure and termination
+
+The protocol has a notion of backpressure by the receiver. Instead of receiving all the events of the sender as they are produced, it becomes the responsibility of the receiver to clearly indicate how many events they want delivered from the sender.
+
+This has a few benefits :
+
+- The receiver may not request any new events, and it's therefore possible to have a "sender-only" implementation with this flexible behavior.
+- Sites that need to process messages before requesting additional events can actually do so.
+
+Additionally, the sender and the receiver protocol messages offer some _Done_ messages. This allows the following :
+
+- The sender may tell that it will not generate any additional advertisements and events.
+- The receiver may tell that it not generate any additional request.
+
+Termination is cooperative :
+
+- If you're the sender and you receive a _Done_ event, you should not send any additional advertisement, nor should you send any additional event (event if they were requested). In-flight messages will still be processed by the receiver but they might be ignored. You should send a _Done_ message right away, before emptying the in-flight queue.
+
+- If you're the receiver and you receive a _Done_ event, you should not send any additional request. You are still allowed to process in-flight messages for advertisements and events, but may not issue any additional request. You should send a _Done_ message right away, before emptying the in-flight queue.
 
 ### Various optimizations
 
