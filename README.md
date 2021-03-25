@@ -16,6 +16,10 @@
 6. [Making it a Kotlin library](6_LIBRARY.md)
 7. [Collaborative Markdown](7_MARKDOWN.md)
 
+## Planning
+
++ [Semester schedule](SCHEDULE.md)
+
 ## Source code
 
 + [CRDT-based replication library](https://github.com/markdown-party/kotlin-echo)
