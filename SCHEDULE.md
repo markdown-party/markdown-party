@@ -1,6 +1,6 @@
 # Planning
 
-Ce document énumère les différents jalons de mon travail de bachelor, les échéances principales et les points notables des [directives sur les travaux de bachelor](Assets/Directives.pdf). Ce planning sera amené à évoluer, et a comme objectif de donner un cadre temporel au travail.
+Ce document énumère les différents jalons de mon travail de bachelor, les échéances principales et les points notables des [directives sur les travaux de bachelor](GUIDELINES/Directives.pdf). Ce planning sera amené à évoluer, et a comme objectif de donner un cadre temporel au travail.
 
 ## Calendrier semestriel
 
