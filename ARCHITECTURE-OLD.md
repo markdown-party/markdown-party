@@ -1,29 +1,5 @@
 # Architecture
 
-Ce document contient une description haut-niveau de l'architecture du projet `markdown-party`, incluant notamment :
-
-- une description des structures de données utilisées;
-- le protocole de réplication;
-- les technologies utilisées pour les différents modules;
-- une bibliographie qui sert de base théorique.
-
-## Principes
-
-`markdown-party` est fortement inspiré par l'idée de Local-First software [[2]](#bib_kleppmann_local_first). Chaque utilisateur peut modifier un document Markdown, en local, qui peut ensuite être répliqué avec d'autres utilisateurs qui utilisent leurs machines. L'édition est conçue pour fonctionner en mode hors-ligne; il n'est pas nécessaire d'avoir accès à Internet ou un serveur centralisé pour lire ou écrire de contenu.
-
-Plusieurs structures de données et approches sont envisageables :
-
-+ La transformée opérationnelle [[3]](#bib_ellis_gibbs_ot). Cette technique est généralement centralisée, et est particulièrement complexe à mettre en place [[4]](#bib_gentle_i_was_wrong). En général, il s'agit de mettre en place un log d'opération centralisé; chaque site envoie ses opérations au serveur central, qui, lorsqu'il reçoit une nouvelle opération, regarde quel était l'effet attendu du site qui l'a émise, compare le résultat attendu avec le résultat effectif si l'opération était appliquée tel quelle sur le log des opérations, et renvoie aux autres sites une opération "transformée" afin qu'elle puisse être appliquée par les autres sites.
-
-+ Les Conflict-Free Replicated Data Types (CRDTs), qui sont divisés en deux catégories : les Commutative Replicated Data Types (CmRDTs), et les Convergent replicated data types (CvRDTs) [[5]](#bib_shapiro_comprehensive_crdt). Ces deux variantes fonctionnent de manière légèrement différentes :
-    - Les CmRDTs utilisent des opérations pour transmettre les modifications et changement d'état. Ces opérations peuvent être appliquées de manière **commutative**, mais pas nécessairement de manière **idempotente**. Il faut donc que le réseau qui relie les différents sites s'assure que les opérations sont distribuées à tous les autres sites exactement une fois.
-    - Les CvRDTs sont basées sur le concept de _semi-lattice_. Une _semi-lattice_ est un ordre partiel qui possède une jointure pour chaque sous-ensemble non-vide et fini [[6]](#bib_davey_lattice). Dans le cas des CvRDTs, ces lattices possèdent généralement une jointure supérieure ainsi qu'une jointure inférieure. La convergence de ces CRDTs s'obtient en répliquant l'état complet du CvRDT, et en combinant deux états grâce à la semi-lattice. Cette opérations est idempotente, commutative et associative; l'état des CvRDTs va donc éventuellement converger.
-
-`markdown-party` utilise des structures de données inspirées des CRDTs, pour gérer le problème de réplication de texte Markdown de la façon suivante :
-
-- un CRDT est utilisé pour répliquer un log d'opérations générique. Ce log sert de source de vérité pour les opérations effectuées par les différents sites, et gère notamment la notion d'ordre / de causalité entre les opérations effectuées sur les différents sites. Un petit protocole de réplication permet de répliquer ce log de manière efficace.
-- un ensemble d'opérations propres à l'édition de Markdown sont définies. Ces opérations seront ensuite répliquées à l'aide du log d'opérations, et aggrégées pour afficher le contenu textuel. Comme la gestion de la réplication des opérations est clairement séparée des opérations propres à l'édition collaborative de texte Markdown, la définition des opérations Markdown est très flexible.
-
 ## Log d'opérations distribué
 
 Le log utilisé par `markdown-party` possède les propriétés suivantes :

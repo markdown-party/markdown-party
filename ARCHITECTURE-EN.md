@@ -1,6 +1,6 @@
 # Architecture
 
-In this document, I aim to provide an overview of the architecture of the architecture and design decisions behind one of my Bachelor's thesis subprojects, [kotlin-echo](https://github.com/markdown-party/kotlin-echo). This library helps manage a log of operations, and provides some easy-to-use abstractions to handle operation replication across multiple peers. It also offers a Kotlin-friendly API to access the distributed data, with first-class support of concurrency through [coroutines](https://github.com/Kotlin/kotlinx.coroutines).
+In this document, I aim to provide an overview of the architecture of the architecture and design decisions behind one of my Bachelor's thesis subprojects, [kotlin-echo](https://github.com/markdown-party/kotlin-echo). This library helps manage a log of operations, and provides some easy-to-use abstractions to handle operation replication across multiple peers. It also offers a Kotlin-friendly API to access the distributed data, with first-class support of concurrency through [coroutines](https://github.com/Kotlin/kotlinx.coroutines). It is heavily inspired by the notion of Local-First software [[2]](#bib_kleppmann_local_first).
 
 ## Motivation
 
@@ -34,13 +34,11 @@ Here is a (non-exhaustive) list of some terminology I will be using throughout t
     - In a distributed text editor, candidate operations may be **insertion**, **removal**, and **highlighting**.
 + _Aggregation_ : A domain-specific way to transform a sequence of operations into a state.
 
-### Use cases
-
-- TODO
-
 ### Literature review and state of the art
 
-- TODO
+#### Operational Transformation
+
+This technique is usually centralized, and particularly cumbersome and difficult to implement [[4]](#bib_gentle_i_was_wrong). Usually, one has to implment a centralized operation log; eacch site will then send operations to the central server. Whenever a new operation is received, the server checks what the "expected" result was, and transforms the operation with the current log contents. The transformed operation is then sent to all the other sites, so it can be applied properly.
 
 #### Causality tracking with clocks
 
@@ -48,13 +46,10 @@ Here is a (non-exhaustive) list of some terminology I will be using throughout t
 
 #### CmRDTs and CvRDTs
 
-+ CmRDTs
+Conflict-Free Replicated Data Types can generally be separated in two distinct groups : Commutative Replicated Data Types [CmRDTs] and Convergent Replicated Data Types (CvRDTs) [[5]](#bib_shapiro_comprehensive_crdt). These variants work slightly differently from each other :
 
-- TODO
-
-+ CvRDTs
-
-- TODO
++ CmRDTs use operations to broadcast state updates. These operations can be applied in a **commutative** fashion, but not necessarily **idempotently**. Therefore, the broadcasting network mut make sure that operations are distributed to all the other sites exactly once.
++ CvRDTs are based on _semi-lattices_. A _semi-lattive_ is a partial order with an upper join for any finite and non-emtpy subset of elements [[6]](#bib_davey_lattice). Generally, CvRDTs also have an additional lower join. CvRDTs converge by replicating the whole state of the CvRDT, broadcasting it, and combining states on each site with the semi-lattice properties. Because this process is idempotent, commutative and associative, the CvRDT states will eventually converge to a common value.
 
 #### Existing libraries and frameworks
 
@@ -72,6 +67,11 @@ Here is a (non-exhaustive) list of some terminology I will be using throughout t
 
 ### Principles
 
+`kotlin-echo` makes use of CRDT-inspired data structures, to implement the replication of Markdown text as follows :
+
+- A CRDT is used to replicate a generic operation log. This log acts as the source of truth of operations performed on different sites by the users, and keeps track of order / causality of operations across sites. A small replication protocol syncs this log across sites efficiently.
+- A set of Markdown-specific operations is defined. These operations are then replicated via the operation log, and aggregated as text. Because the replication process is clearly separated from the Markdown-specific operations, the definition of the latter is really flexible.
+
 ### Protocols
 
 ### Various optimizations
@@ -84,29 +84,53 @@ Here is a (non-exhaustive) list of some terminology I will be using throughout t
 
 ### Designing a Kotlin-friendly API
 
-```kotlin
-enum Operation { Increment, Decrement }
+#### Using the library (taken from the `kotlin-echo` [`README.md`](https://github.com/markdown-party/kotlin-echo))
 
-echo.event {
-    yield(Increment)
-    yield(Increment)
-}
-```
+Let's implement a distributed counter, which lets sites increment and decrement a shared value. We start by defining the events, as well as a `OneWayProjection` that aggregates them :
 
 ```kotlin
-enum Operation { Increment, Decrement }
+enum class Event { Increment, Decrement }
 
-val values: Flow<Int> = echo.projection(initial = 0) { agg, op ->
+val counter = OneWayProjection<Int, Event> { op, acc ->
     when (op) {
-        Increment -> agg + 1
-        Decrement -> agg - 1
+        Increment -> acc + 1
+        Decrement -> acc - 1
     }
 }
+```
 
-values.collect { total ->
-    println("The counter total is $total.")
+We can then create a new site, and yield some new events :
+
+```kotlin
+val site = mutableSite<Event>(SiteIdentifier.random())
+
+// This is a suspend fun.
+site.event {
+    yield(Increment)
 }
 ```
+
+It's then possible to observe the values of a site as a cold `Flow` :
+
+```kotlin
+val total: Flow<Int> = site.projection(initial = 0, counter) // emits [0, 1, ...]
+```
+
+As new events get `yield` in the `MutableSite`, the cold `Flow` will emit some additional elements
+which contain the distributed counter total.
+
+At some point, you may be interested in syncing multiple sites together. This can be done with a suspending actor pattern, which will not resume until both sites cooperatively finish :
+
+```kotlin
+suspend fun myFun() {
+    val alice = mutableSite<Event>(SiteIdentifier.random())
+    val bob = mutableSite<Event>(SiteIdentifier.random())
+
+    sync(alice, bob)
+}
+```
+
+Additional examples are available in the [demo folder](https://github.com/markdown-party/kotlin-echo/tree/main/src/test/kotlin/markdown/echo/demo).
 
 ## Future developments
 
