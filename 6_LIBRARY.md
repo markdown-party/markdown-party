@@ -5,5 +5,10 @@
 ### Producing events
 ### Aggregating events
 
+## Replication
+### Using `Exchange` and `sync`
+### Integrations
+
 ## Optimizations
+### Site, Exchange and Link relationships
 ### The `EventLog` interface
