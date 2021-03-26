@@ -1,4 +1,12 @@
-# About this project
+# 1. About this project
+
+- [1. About this project](#1-about-this-project)
+  - [1.1. Goals and objectives](#11-goals-and-objectives)
+    - [1.1.1. Deliverables](#111-deliverables)
+    - [1.1.2. Additional perspectives](#112-additional-perspectives)
+    - [1.1.3. Potential partnerships](#113-potential-partnerships)
+
+## 1.1. Goals and objectives
 
 This projects aims at specifying and implementing a collaborative Markdown-based note taking app for the web. The idea is directly inspired by [Overleaf](https://www.overleaf.com), which offers collaborative editing of LaTeX documents. The app will let multiple users collaborate simulatenously on the same document, and let clients temporarily disconnect. The proposed approach is split as follows :
 
@@ -8,7 +16,7 @@ This projects aims at specifying and implementing a collaborative Markdown-based
 + Implementation of a synchronization system and validation of its behavior with unit / integration tests; and
 + Design and implementation of a web text editor that makes use of the replication system.
 
-## Deliverables
+### 1.1.1. Deliverables
 
 On top of reports and standard bachelor thesis deliverables at HEIG-VD, the final deliverable will include at least the following items :
 
@@ -16,7 +24,7 @@ On top of reports and standard bachelor thesis deliverables at HEIG-VD, the fina
 + A web server which eases content sync between the participants; and
 + A detailed specification of the sync protocol and the implemented data structures.
 
-## Additional perspectives
+### 1.1.2. Additional perspectives
 
 The following topics may be investigated during the project :
 
@@ -26,6 +34,6 @@ The following topics may be investigated during the project :
 
 Please check out the extended description on [Craft Docs](https://www.craft.do/s/aIXV4QygroIsXF).
 
-## Potential partnerships
+### 1.1.3. Potential partnerships
 
 A positive prior notice has been given by Adobe (Basel). This will be confirmed later.
